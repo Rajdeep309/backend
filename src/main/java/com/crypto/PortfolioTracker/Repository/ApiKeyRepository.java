@@ -19,4 +19,6 @@ public interface ApiKeyRepository extends JpaRepository<ApiKey, Long> {
         User getUser();
         Exchange getExchange();
     }
+
+    boolean existsByApiKey(String apiKey);
 }

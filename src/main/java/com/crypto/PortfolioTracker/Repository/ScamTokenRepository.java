@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ScamTokenRepository extends JpaRepository<ScamToken, Long> {
 
-
+    boolean existsByContractAddress(String address);
 }
