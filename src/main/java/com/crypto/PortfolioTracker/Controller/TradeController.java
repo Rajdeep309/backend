@@ -26,13 +26,24 @@ public class TradeController {
 
     private TradeService tradeService;
 
-    @PostMapping("/public/fetch-trades")
-    public ResponseEntity<ApiResponse<List<TradeDTO>>> fetchTrades() throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException {
+    @PostMapping("/public/fetch-all-trades")
+    public ResponseEntity<ApiResponse<List<TradeDTO>>> fetchFullTrades() throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         Long userId = (Long) authentication.getPrincipal();
 
-        List<TradeDTO> trades = tradeService.fetchTradesAndUpdateHoldings(userId);
+        List<TradeDTO> trades = tradeService.syncFullHistory(userId);
+        return new ResponseEntity<>(new ApiResponse<>("Success", trades)
+                , HttpStatus.OK);
+    }
+
+    @PostMapping("/public/fetch-incremental-trades")
+    public ResponseEntity<ApiResponse<List<TradeDTO>>> fetchIncrementalTrades() throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Long userId = (Long) authentication.getPrincipal();
+
+        List<TradeDTO> trades = tradeService.syncIncremental(userId);
         return new ResponseEntity<>(new ApiResponse<>("Success", trades)
                 , HttpStatus.OK);
     }

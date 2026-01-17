@@ -8,5 +8,7 @@ import java.util.List;
 
 public interface TradeService {
 
-    List<TradeDTO> fetchTradesAndUpdateHoldings(Long userid) throws InterruptedException, NoSuchAlgorithmException, InvalidKeyException;
+    List<TradeDTO> syncFullHistory(Long userId) throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException;
+
+    List<TradeDTO> syncIncremental(Long userId) throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException;
 }

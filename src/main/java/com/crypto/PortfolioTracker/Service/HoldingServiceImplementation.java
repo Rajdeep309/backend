@@ -9,7 +9,6 @@ import com.crypto.PortfolioTracker.Exception.ResourceNotFoundException;
 import com.crypto.PortfolioTracker.Exception.RiskAlertException;
 import com.crypto.PortfolioTracker.Exchange.BinanceService;
 import com.crypto.PortfolioTracker.Exchange.CryptoScamDbService;
-import com.crypto.PortfolioTracker.Exchange.CryptoScamDbServiceImplementation;
 import com.crypto.PortfolioTracker.Exchange.EtherScanService;
 import com.crypto.PortfolioTracker.Model.*;
 import com.crypto.PortfolioTracker.Repository.*;
@@ -146,12 +145,17 @@ public class HoldingServiceImplementation implements HoldingService {
         else {
 
             Exchange exchange = null;
-            if(holdingInfo.getAddress() != null) {
+            String address = holdingInfo.getAddress();
+            if(address != null) {
+
+                if(riskAlertRepository.existsBySourceAddress(address)) {
+                    throw new RiskAlertException("Address contains risk");
+                }
 
                 ApiKeyRepository.ApiKeyProjection credentials = apiKeyRepository.findByUser_IdAndExchange_Name(userId, "EtherScan")
                         .orElseThrow(() -> new ResourceNotFoundException("Exchange not found"));
 
-                AddressVerificationDTO dto = etherScanService.isAddressRiskFree(holdingInfo.getAddress(), holdingInfo.getChain().getId(), encryptionUtil.decrypt(credentials.getApiKey()));
+                AddressVerificationDTO dto = etherScanService.isAddressRiskFree(address, holdingInfo.getChain().getId(), encryptionUtil.decrypt(credentials.getApiKey()));
                 if(dto.isRisk()) {
 
                     riskAlertRepository.save(
@@ -166,7 +170,7 @@ public class HoldingServiceImplementation implements HoldingService {
                     scamTokenRepository.save(
                             new ScamToken(
                                     holdingInfo.getChain().toString(),
-                                    holdingInfo.getAddress(),
+                                    address,
                                     dto.getRiskLevel(),
                                     "EtherScan"
                             )
@@ -174,7 +178,7 @@ public class HoldingServiceImplementation implements HoldingService {
                     throw new RiskAlertException("Address contains risk");
                 }
 
-                dto = cryptoScamDbService.isAddressRiskFree(holdingInfo.getAddress());
+                dto = cryptoScamDbService.isAddressRiskFree(address);
                 if(dto.isRisk()) {
 
                     riskAlertRepository.save(
@@ -189,7 +193,7 @@ public class HoldingServiceImplementation implements HoldingService {
                     scamTokenRepository.save(
                             new ScamToken(
                                     holdingInfo.getChain().toString(),
-                                    holdingInfo.getAddress(),
+                                    address,
                                     dto.getRiskLevel(),
                                     "CryptoScamDB"
                             )

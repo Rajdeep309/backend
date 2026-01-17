@@ -14,6 +14,7 @@ import com.crypto.PortfolioTracker.Repository.ApiKeyRepository;
 import com.crypto.PortfolioTracker.Repository.HoldingRepository;
 import com.crypto.PortfolioTracker.Repository.TradeRepository;
 import com.crypto.PortfolioTracker.Util.EncryptionUtil;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -41,8 +42,31 @@ public class TradeServiceImplementation implements TradeService {
 
     private EncryptionUtil encryptionUtil;
 
+
     @Override
-    public List<TradeDTO> fetchTradesAndUpdateHoldings(Long userId) throws InterruptedException, NoSuchAlgorithmException, InvalidKeyException {
+    public List<TradeDTO> syncFullHistory(Long userId) throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException {
+
+        ApiKeyRepository.ApiKeyProjection credentials = apiKeyRepository.findByUser_IdAndExchange_Name(userId, "Binance")
+                .orElseThrow(() -> new ResourceNotFoundException("API key not found"));
+
+        String apiKey = encryptionUtil.decrypt(credentials.getApiKey());
+        String apiSecret = encryptionUtil.decrypt(credentials.getApiSecret());
+        Exchange exchange = credentials.getExchange();
+
+        List<TradeDTO> allTrades = new ArrayList<>();
+        List<String> symbols = binanceService.fetchSymbols();
+
+        for (String symbol : symbols) {
+            String assetSymbol = extractAssetSymbol(symbol);
+            if (assetSymbol == null) continue;
+
+            allTrades.addAll(processAssetTrades(userId, assetSymbol, symbol, apiKey, apiSecret, null, exchange));
+        }
+        return allTrades;
+    }
+
+    @Override
+    public List<TradeDTO> syncIncremental(Long userId) throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException {
 
         ApiKeyRepository.ApiKeyProjection credentials = apiKeyRepository.findByUser_IdAndExchange_Name(userId, "Binance")
                 .orElseThrow(() -> new ResourceNotFoundException("API key not found"));
@@ -52,105 +76,83 @@ public class TradeServiceImplementation implements TradeService {
         Exchange exchange = credentials.getExchange();
 
         List<Object[]> maxTimes = tradeRepository.findAllMaxExecutedAtByUserId(userId);
-        Map<String, LocalDateTime> lastExecutionMap = new HashMap<>();
+        List<TradeDTO> allTrades = new ArrayList<>();
+
         for (Object[] row : maxTimes) {
-            lastExecutionMap.put((String) row[0], (LocalDateTime) row[1]);
+            String assetSymbol = (String) row[0];
+            LocalDateTime lastExecutedAt = (LocalDateTime) row[1];
+
+            // Reconstruct symbol - logic assumes USDT pair for incremental
+            String symbol = assetSymbol + "USDT";
+
+            allTrades.addAll(processAssetTrades(userId, assetSymbol, symbol, apiKey, apiSecret, lastExecutedAt, exchange));
         }
+        return allTrades;
+    }
 
-        List<TradeDTO> tradeDTOs = new ArrayList<>();
+    private String extractAssetSymbol(String symbol) {
+        if (symbol.endsWith("USDT")) return symbol.substring(0, symbol.length() - 4);
+        if (symbol.endsWith("BTC") || symbol.endsWith("BNB") || symbol.endsWith("ETH")) return symbol.substring(0, symbol.length() - 3);
+        return null;
+    }
 
-        List<String> symbols = binanceService.fetchSymbols();
-        for(String symbol : symbols) {
+    @Transactional
+    private List<TradeDTO> processAssetTrades(Long userId, String assetSymbol, String symbol, String apiKey, String apiSecret, LocalDateTime lastExecutedAt, Exchange exchange) throws InterruptedException, NoSuchAlgorithmException, InvalidKeyException {
 
-            String assetSymbol;
-            if (symbol.endsWith("USDT")) {
-                assetSymbol = symbol.substring(0, symbol.length() - 4);
-            } else if (symbol.endsWith("BTC") || symbol.endsWith("BNB") || symbol.endsWith("ETH")) {
-                assetSymbol = symbol.substring(0, symbol.length() - 3);
+        List<BinanceTradesDTO> trades = binanceService.fetchTrades(apiKey, apiSecret, lastExecutedAt, symbol);
+        List<TradeDTO> processedTrades = new ArrayList<>();
+
+        Thread.sleep(500);
+        if (trades.isEmpty()) return processedTrades;
+
+        // Load current holding state
+        var currentHolding = holdingRepository.findByUser_IdAndAssetSymbolAndWalletType(userId, assetSymbol, WalletTypes.EXCHANGE);
+        BigDecimal averageCost = currentHolding.map(HoldingRepository.HoldingProjection::getAvgCost).orElse(BigDecimal.ZERO);
+        BigDecimal totalQuantity = currentHolding.map(HoldingRepository.HoldingProjection::getQuantity).orElse(BigDecimal.ZERO);
+
+        for (BinanceTradesDTO trade : trades) {
+            Side side = trade.isBuyer() ? Side.BUY : Side.SELL;
+
+            if (side == Side.BUY) {
+                BigDecimal currentTotalValue = averageCost.multiply(totalQuantity);
+                BigDecimal newTradeCost = trade.price().multiply(trade.qty()).add(trade.commission());
+                totalQuantity = totalQuantity.add(trade.qty());
+                averageCost = currentTotalValue.add(newTradeCost).divide(totalQuantity, 8, RoundingMode.HALF_UP);
             } else {
-                continue;
+                totalQuantity = totalQuantity.subtract(trade.qty());
             }
 
-            LocalDateTime lastExecutedAt = lastExecutionMap.get(assetSymbol);
-            List<BinanceTradesDTO> trades = binanceService.fetchTrades(apiKey, apiSecret, lastExecutedAt, symbol);
+            tradeRepository.save(
+                    new Trade(
+                            new User(userId),
+                            assetSymbol,
+                            trade.qty(),
+                            side,
+                            trade.price(),
+                            trade.commission(),
+                            exchange,
+                            LocalDateTime.ofInstant(Instant.ofEpochMilli(trade.time()), ZoneOffset.UTC)
+                    )
+            );
 
-            Thread.sleep(500);
-            if(trades.isEmpty()) continue;
-
-            Optional<HoldingRepository.HoldingProjection> currentHolding = holdingRepository.findByUser_IdAndAssetSymbolAndWalletType(userId, assetSymbol, WalletTypes.EXCHANGE);
-
-            BigDecimal averageCost = BigDecimal.ZERO;
-            BigDecimal totalQuantity = BigDecimal.ZERO;
-
-            if(currentHolding.isPresent()) {
-                averageCost = currentHolding.get().getAvgCost();
-                totalQuantity = currentHolding.get().getQuantity();
-            }
-
-            for(BinanceTradesDTO trade : trades) {
-
-                Side side;
-                BigDecimal tradeQty = trade.qty();
-                BigDecimal tradePrice = trade.price();
-                BigDecimal commission = trade.commission();
-
-                if(trade.isBuyer()) {
-
-                    side = Side.BUY;
-
-                    BigDecimal currentTotalValue = averageCost.multiply(totalQuantity);
-                    BigDecimal newTradeCost = tradePrice.multiply(tradeQty).add(commission);
-
-                    totalQuantity = totalQuantity.add(tradeQty);
-
-                    averageCost = currentTotalValue.add(newTradeCost)
-                            .divide(totalQuantity, 8, RoundingMode.HALF_UP);
-                }
-                else {
-                    side = Side.SELL;
-                    totalQuantity = totalQuantity.subtract(tradeQty);
-                }
-
-                LocalDateTime executedTime = LocalDateTime.ofInstant(
-                        Instant.ofEpochMilli(trade.time()),
-                        ZoneOffset.UTC
-                );
-                tradeRepository.save(
-                        new Trade(new User(userId)
-                                , assetSymbol
-                                , tradeQty
-                                , side
-                                , tradePrice
-                                , commission
-                                , exchange
-                                , executedTime)
-                );
-
-                tradeDTOs.add(
-                        new TradeDTO(
-                                assetSymbol,
-                                tradeQty,
-                                side,
-                                tradePrice
-                        )
-                );
-            }
-
-            boolean updated = holdingRepository.updateHoldingDetails(userId, assetSymbol, WalletTypes.EXCHANGE, totalQuantity, averageCost);
-            if(!updated) {
-                Holding holding = new Holding(
-                        new User(userId),
-                        assetSymbol,
-                        totalQuantity,
-                        averageCost,
-                        exchange,
-                        WalletTypes.EXCHANGE,
-                        null
-                );
-                holdingRepository.save(holding);
-            }
+            processedTrades.add(new TradeDTO(assetSymbol, trade.qty(), side, trade.price()));
         }
 
-        return tradeDTOs;
+        boolean updated = holdingRepository.updateHoldingDetails(userId, assetSymbol, WalletTypes.EXCHANGE, totalQuantity, averageCost);
+        if (!updated) {
+            holdingRepository.save(
+                    new Holding(
+                            new User(userId),
+                            assetSymbol,
+                            totalQuantity,
+                            averageCost,
+                            exchange,
+                            WalletTypes.EXCHANGE,
+                            null
+                    )
+            );
+        }
+
+        return processedTrades;
     }
 }
