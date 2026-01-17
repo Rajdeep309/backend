@@ -1,6 +1,7 @@
 package com.crypto.PortfolioTracker.Service;
 
 import com.crypto.PortfolioTracker.DTO.AddApiKeyRequest;
+import com.crypto.PortfolioTracker.Exception.DuplicateEntryException;
 import com.crypto.PortfolioTracker.Exception.ResourceNotFoundException;
 import com.crypto.PortfolioTracker.Exchange.BinanceService;
 import com.crypto.PortfolioTracker.Exchange.EtherScanService;
@@ -32,6 +33,10 @@ public class ApiKeyServiceImplementation implements ApiKeyService {
 
     @Override
     public void addApiKey(Long userId, AddApiKeyRequest request) throws Exception {
+
+        if(apiKeyRepository.existsByApiKey(encryptionUtil.encrypt(request.getApiKey()))) {
+            throw new DuplicateEntryException("Duplicate entry alert");
+        }
 
         Exchange exchange = exchangeRepository.findByName(request.getExchangeName())
                 .orElseThrow(() -> new ResourceNotFoundException("Exchange not found"));

@@ -47,6 +47,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(exception.getMessage());
     }
 
+    @ExceptionHandler(DuplicateEntryException.class)
+    public ResponseEntity<String> handelExternalServiceException(DuplicateEntryException exception) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(exception.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handelGlobalException(Exception exception) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(exception.getMessage());

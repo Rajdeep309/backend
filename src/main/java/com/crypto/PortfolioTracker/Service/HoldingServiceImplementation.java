@@ -148,7 +148,7 @@ public class HoldingServiceImplementation implements HoldingService {
             String address = holdingInfo.getAddress();
             if(address != null) {
 
-                if(riskAlertRepository.existsBySourceAddress(address)) {
+                if(scamTokenRepository.existsByContractAddress(address)) {
                     throw new RiskAlertException("Address contains risk");
                 }
 
