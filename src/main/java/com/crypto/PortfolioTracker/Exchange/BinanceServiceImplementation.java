@@ -1,6 +1,10 @@
 package com.crypto.PortfolioTracker.Exchange;
 
-import com.crypto.PortfolioTracker.DTO.*;
+import com.crypto.PortfolioTracker.DTO.BinanceAccountResponseDTO;
+import com.crypto.PortfolioTracker.DTO.BinanceExchangeInfoDTO;
+import com.crypto.PortfolioTracker.DTO.BinanceHoldingsDTO;
+import com.crypto.PortfolioTracker.DTO.BinanceSymbolsDTO;
+import com.crypto.PortfolioTracker.DTO.BinanceTradesDTO;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;

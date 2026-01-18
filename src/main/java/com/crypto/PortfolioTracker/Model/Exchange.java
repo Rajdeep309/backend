@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.tool.schema.spi.ExceptionHandler;
 
 import java.time.LocalDateTime;
 

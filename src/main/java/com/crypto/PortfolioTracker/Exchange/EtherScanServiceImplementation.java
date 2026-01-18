@@ -17,7 +17,7 @@ public class EtherScanServiceImplementation implements EtherScanService {
     private static final String BASE_URL = "https://api.etherscan.io";
 
     @Override
-    public void validateConnection(String apiKey) throws Exception {
+    public void validateConnection(String apiKey) {
 
         String url = UriComponentsBuilder.fromHttpUrl(BASE_URL + "/v2/api")
                 .queryParam("chainid", 1)
@@ -33,10 +33,10 @@ public class EtherScanServiceImplementation implements EtherScanService {
             String result = response.path("result").asText();
 
             if ("0".equals(status)) {
-                throw new Exception("EtherScan API Error: " + result);
+                throw new ExternalServiceException("EtherScan API Error: " + result);
             }
         } else {
-            throw new Exception("No response received from EtherScan.");
+            throw new ExternalServiceException("No response received from EtherScan.");
         }
     }
 

@@ -44,4 +44,8 @@ public interface HoldingRepository extends JpaRepository<Holding, Long> {
                              @Param("walletType") WalletTypes walletType,
                              @Param("qty") BigDecimal qty,
                              @Param("avgCost") BigDecimal avgCost);
+
+    List<Holding> findByUser_Id(Long userId);
+
+    List<Holding> findByUser_IdAndAssetSymbol(Long userId, String assetSymbol);
 }

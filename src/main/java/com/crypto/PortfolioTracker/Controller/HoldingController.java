@@ -7,7 +7,6 @@ import com.crypto.PortfolioTracker.Service.HoldingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,8 +25,7 @@ public class HoldingController {
     @PostMapping("/public/refresh-exchange-holdings")
     public ResponseEntity<ApiResponse<List<HoldingResponse>>> refreshHoldingsOfExchangeWallet() throws NoSuchAlgorithmException, InvalidKeyException {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = (Long) authentication.getPrincipal();
+        Long userId = getLoggedInUserId();
 
         List<HoldingResponse> holdings = holdingService.exchangeWalletRefresh(userId);
         return new ResponseEntity<>(new ApiResponse<>("Success", holdings)
@@ -37,8 +35,7 @@ public class HoldingController {
     @GetMapping("/public/refresh-manual-holdings")
     public ResponseEntity<ApiResponse<List<HoldingResponse>>> refreshManualHoldings() {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = (Long) authentication.getPrincipal();
+        Long userId = getLoggedInUserId();
 
         List<HoldingResponse> holdings = holdingService.manualWalletRefresh(userId);
         return new ResponseEntity<>(new ApiResponse<>("Success", holdings)
@@ -48,11 +45,18 @@ public class HoldingController {
     @PostMapping("/public/manual-add-edit")
     public ResponseEntity<ApiResponse<HoldingResponse>> manualAddEdit(@RequestBody HoldingDTO holdingInfo) {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = (Long) authentication.getPrincipal();
+        Long userId = getLoggedInUserId();
 
         HoldingResponse holding = holdingService.manualAddOrEdit(userId, holdingInfo);
         return new ResponseEntity<>(new ApiResponse<>("Success", holding)
                 , HttpStatus.OK);
+    }
+
+    private Long getLoggedInUserId() {
+        return Long.parseLong(
+                SecurityContextHolder.getContext()
+                        .getAuthentication()
+                        .getName()
+        );
     }
 }

@@ -6,7 +6,6 @@ import com.crypto.PortfolioTracker.Service.TradeService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +20,7 @@ import java.util.List;
 
 @RestController
 @CrossOrigin("*")
-@RequestMapping("api/trade")
+@RequestMapping("/api/trade")
 public class TradeController {
 
     private TradeService tradeService;
@@ -29,8 +28,7 @@ public class TradeController {
     @PostMapping("/public/fetch-all-trades")
     public ResponseEntity<ApiResponse<List<TradeDTO>>> fetchFullTrades() throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = (Long) authentication.getPrincipal();
+        Long userId = getLoggedInUserId();
 
         List<TradeDTO> trades = tradeService.syncFullHistory(userId);
         return new ResponseEntity<>(new ApiResponse<>("Success", trades)
@@ -40,11 +38,18 @@ public class TradeController {
     @PostMapping("/public/fetch-incremental-trades")
     public ResponseEntity<ApiResponse<List<TradeDTO>>> fetchIncrementalTrades() throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Long userId = (Long) authentication.getPrincipal();
+        Long userId = getLoggedInUserId();
 
         List<TradeDTO> trades = tradeService.syncIncremental(userId);
         return new ResponseEntity<>(new ApiResponse<>("Success", trades)
                 , HttpStatus.OK);
+    }
+
+    private Long getLoggedInUserId() {
+        return Long.parseLong(
+                SecurityContextHolder.getContext()
+                        .getAuthentication()
+                        .getName()
+        );
     }
 }
