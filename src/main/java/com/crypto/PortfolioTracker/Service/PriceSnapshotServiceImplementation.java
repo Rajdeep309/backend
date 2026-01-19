@@ -25,7 +25,7 @@ public class PriceSnapshotServiceImplementation implements PriceSnapshotService 
     private CoinGeckoService coinGeckoService;
 
     @Override
-    @Scheduled(fixedRate = 1, timeUnit = TimeUnit.HOURS)
+    @Scheduled(fixedRate = 24, timeUnit = TimeUnit.HOURS)
     public void savePriceSnapshots() {
 
         List<CoinGeckoPriceSnapshotsDTO> geckoPriceSnapshots = coinGeckoService.fetchPriceSnapshots();
