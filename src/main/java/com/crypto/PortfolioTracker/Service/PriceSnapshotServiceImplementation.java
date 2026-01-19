@@ -46,7 +46,7 @@ public class PriceSnapshotServiceImplementation implements PriceSnapshotService 
     @Transactional
     public void removeOldSnapshots() {
 
-        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(2);
+        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(7);
         priceSnapshotRepository.deleteByCapturedAtBefore(cutoffDate);
     }
 
