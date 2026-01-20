@@ -22,7 +22,7 @@ public class HoldingController {
     @Autowired
     private HoldingService holdingService;
 
-    @PostMapping("/public/refresh-exchange-holdings")
+    @PostMapping("/public/refresh-exchange-holdings") // binance : holding le ke aayega tabe me storee karega and return to frontend
     public ResponseEntity<ApiResponse<List<HoldingResponse>>> refreshHoldingsOfExchangeWallet() throws NoSuchAlgorithmException, InvalidKeyException {
 
         Long userId = getLoggedInUserId();
@@ -32,7 +32,7 @@ public class HoldingController {
                 , HttpStatus.OK);
     }
 
-    @GetMapping("/public/refresh-manual-holdings")
+    @GetMapping("/public/refresh-manual-holdings") // mannually assest ka info dale , user likhega details address me bata raha hai ki kaha se liya hai
     public ResponseEntity<ApiResponse<List<HoldingResponse>>> refreshManualHoldings() {
 
         Long userId = getLoggedInUserId();
@@ -42,7 +42,7 @@ public class HoldingController {
                 , HttpStatus.OK);
     }
 
-    @PostMapping("/public/manual-add-edit")
+    @PostMapping("/public/manual-add-edit")// mannuaaly edit karega
     public ResponseEntity<ApiResponse<HoldingResponse>> manualAddEdit(@RequestBody HoldingDTO holdingInfo) {
 
         Long userId = getLoggedInUserId();

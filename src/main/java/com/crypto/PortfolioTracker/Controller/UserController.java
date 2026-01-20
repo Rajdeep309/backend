@@ -41,7 +41,7 @@ public class UserController {
                 .body(new ApiResponse<>("User found", dto));
     }
 
-    @PatchMapping("/auth/public/reset-password")
+    @PatchMapping("/auth/public/reset-password") // reset ke case me forgot password page per jayega , otp aayega check hoga oroption aayega
     public ResponseEntity<ApiResponse<String>> resetPassword(@RequestParam String email, String newPassword) {
 
         userService.resetPassword(email, newPassword);

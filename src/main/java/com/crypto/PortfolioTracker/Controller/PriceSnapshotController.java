@@ -20,7 +20,7 @@ public class PriceSnapshotController {
 
     private PriceSnapshotService priceSnapshotService;
 
-    @GetMapping("/public/get-price-snapshots")
+    @GetMapping("/public/get-price-snapshots")// real time price bata raha hai , automaically call karega or update karega
     public ResponseEntity<ApiResponse<List<PriceSnapshotDTO>>> getPriceSnapshots(
             @RequestParam(name = "assetSymbol") String assetSymbol
     ) {

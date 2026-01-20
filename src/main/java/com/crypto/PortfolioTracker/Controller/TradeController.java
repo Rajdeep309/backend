@@ -25,7 +25,7 @@ public class TradeController {
 
     private TradeService tradeService;
 
-    @PostMapping("/public/fetch-all-trades")
+    @PostMapping("/public/fetch-all-trades")// trade store karega , avg calucalte karega
     public ResponseEntity<ApiResponse<List<TradeDTO>>> fetchFullTrades() throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException {
 
         Long userId = getLoggedInUserId();
@@ -35,7 +35,7 @@ public class TradeController {
                 , HttpStatus.OK);
     }
 
-    @PostMapping("/public/fetch-incremental-trades")
+    @PostMapping("/public/fetch-incremental-trades")//  trade table ko dekhega , trdde table me dekhega ki konse tumne use kiya ,,,
     public ResponseEntity<ApiResponse<List<TradeDTO>>> fetchIncrementalTrades() throws NoSuchAlgorithmException, InvalidKeyException, InterruptedException {
 
         Long userId = getLoggedInUserId();

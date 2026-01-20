@@ -17,7 +17,7 @@ public class ApiKeyController {
     @Autowired
     private ApiKeyService apiKeyService;
 
-    @PostMapping("/public/addExchange")
+    @PostMapping("/public/addExchange")  //add exchange like binance :
     public ResponseEntity<ApiResponse<String>> exchangeConnector(@RequestBody AddApiKeyRequest exchangeInfo) throws Exception {
 
         Long userId = getLoggedInUserId();
