@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/pnl")
-@CrossOrigin("*")
 public class PnLController {
 
     private PnLService pnLService;

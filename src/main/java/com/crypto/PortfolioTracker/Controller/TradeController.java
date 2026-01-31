@@ -19,7 +19,6 @@ import java.util.List;
 @AllArgsConstructor
 
 @RestController
-@CrossOrigin("*")
 @RequestMapping("/api/trade")
 public class TradeController {
 

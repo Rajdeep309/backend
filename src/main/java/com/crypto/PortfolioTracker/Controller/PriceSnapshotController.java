@@ -14,7 +14,6 @@ import java.util.List;
 @AllArgsConstructor
 
 @RestController
-@CrossOrigin("*")
 @RequestMapping("/api/price-snapshots")
 public class PriceSnapshotController {
 

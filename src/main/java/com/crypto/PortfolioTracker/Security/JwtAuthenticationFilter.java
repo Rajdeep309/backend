@@ -26,6 +26,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        // ✅ Allow CORS preflight requests to pass through
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -35,9 +41,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Long userId = jwtUtil.validateToken(token);
             if (userId != null) {
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userId, null, new ArrayList<>());
+                        new UsernamePasswordAuthenticationToken(
+                                userId, null, new ArrayList<>());
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContextHolder.getContext()
+                        .setAuthentication(authentication);
             }
         }
 
